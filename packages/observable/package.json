@@ -3,9 +3,13 @@
   "version": "0.0.2",
   "description": "Obervable Monad for TypeScript",
   "main": "dist/index.js",
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsc",
-    "coverage": "jest --coverage",
+    "clean": "rimraf dist coverage",
+    "prepack": "npm run clean; npm run build",
     "test": "jest"
   },
   "repository": {
@@ -36,6 +40,7 @@
     "babel-jest": "^27.5.1",
     "eslint": "^8.10.0",
     "jest": "^27.5.1",
+    "rimraf": "^3.0.2",
     "typescript": "^4.6.2"
   }
 }
