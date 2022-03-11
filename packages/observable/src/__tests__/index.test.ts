@@ -1,4 +1,15 @@
-import { fmap, join, lift, mutable, property, propertyOf, startWith } from "..";
+import {
+  bind,
+  fmap,
+  join,
+  lift,
+  Mutable,
+  mutable,
+  property,
+  propertyOf,
+  pure,
+  startWith,
+} from "..";
 
 const add = (n: number) => (m: number) => n + m;
 const inc = add(1);
@@ -189,6 +200,14 @@ describe("Observable", () => {
     });
   });
 
+  describe("pure", () => {
+    it("should return a constant observable", () => {
+      const value = pure(42);
+      const { state } = value.observe(() => {});
+      expect(state).toBe(42);
+    });
+  });
+
   describe("lift", () => {
     it("should work correctly as an Applicative Functor lift", () => {
       const unobserveX = jest.fn();
@@ -218,6 +237,47 @@ describe("Observable", () => {
       ob.unobserve();
       expect(unobserveX).toBeCalledTimes(1);
       expect(unobserveY).toBeCalledTimes(1);
+    });
+  });
+
+  describe("bind", () => {
+    it("should work correctly as a Monad Functor bind", () => {
+      let mutM: Mutable<number>;
+      const unobserveN = jest.fn();
+      const mutN = mutable(startWith(1, unobserveN));
+      const unobserveM = jest.fn();
+      const obM = bind(
+        (n: number) => (mutM = mutable(startWith(n * 10, unobserveM)))
+      )(mutN);
+
+      const cb = jest.fn();
+      const obn = obM.observe(cb);
+      expect(obn.state).toBe(10);
+
+      // Inner update
+      mutM.update(inc);
+      expect(cb).toBeCalledTimes(1);
+      expect(cb).toHaveBeenLastCalledWith(11);
+
+      // Outer update
+      mutN.update(inc);
+      expect(cb).toBeCalledTimes(2);
+      expect(cb).toHaveBeenLastCalledWith(20);
+      expect(unobserveM).toBeCalledTimes(1);
+
+      // Outer update without value change
+      mutM.update((a) => a + 10);
+      expect(cb).toBeCalledTimes(3);
+      expect(cb).toHaveBeenLastCalledWith(30);
+
+      mutN.update(inc);
+      expect(cb).toBeCalledTimes(3);
+      expect(unobserveM).toBeCalledTimes(2);
+
+      // Cascaded unobserve
+      obn.unobserve();
+      expect(unobserveM).toBeCalledTimes(3);
+      expect(unobserveN).toBeCalledTimes(1);
     });
   });
 

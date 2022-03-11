@@ -24,17 +24,17 @@ export const mutable = <S>(start: MutableStart<S>): Mutable<S> => {
   const observers = chain<Handler<S>>();
 
   const withOb = (() => {
-    let observation: Observation<S>;
+    let obn: Observation<S>;
     return <T>(cb: (ob: Observation<S>) => [S, T]): T => {
-      if (!observation) {
-        observation = start();
+      if (!obn) {
+        obn = start();
       } else if (observers.isEmpty()) {
-        observation = start(observation.state);
+        obn = start(obn.state);
       }
 
-      const { state, unobserve } = observation;
+      const { state, unobserve } = obn;
       const [newState, result] = cb({ state, unobserve });
-      observation.state = newState;
+      obn.state = newState;
 
       if (observers.isEmpty()) {
         unobserve();
@@ -67,20 +67,20 @@ export const observable = <S>(cb: ObservableStart<S>): Observable<S> => {
 
 export const fmap =
   <S, T>(f: (src: S) => T) =>
-  (ob: Observable<S>): Observable<T> =>
+  (obSrc: Observable<S>): Observable<T> =>
     observable((update) => {
-      const { state, unobserve } = ob.observe((src) => update(() => f(src)));
+      const { state, unobserve } = obSrc.observe((src) => update(() => f(src)));
       return () => ({ state: f(state), unobserve });
     });
 
 export const join = <R extends Record<string, any>>(
-  record: ObservableRecord<R>
+  obr: ObservableRecord<R>
 ): Observable<R> =>
   observable(
     (update) => () =>
-      Object.keys(record).reduce(
+      Object.keys(obr).reduce(
         ({ state, unobserve }, key: keyof R) => {
-          const ob = record[key].observe((value) =>
+          const ob = obr[key].observe((value) =>
             update((rec) => ({ ...rec, [key]: value }))
           );
           state[key] = ob.state;
@@ -96,14 +96,39 @@ export const join = <R extends Record<string, any>>(
       )
   );
 
+export const pure = <S>(state: S): Observable<S> =>
+  observable(() => () => ({ state, unobserve: noop }));
+
 export const lift =
-  <R, T>(f: (record: R) => T) =>
-  (obRec: ObservableRecord<R>) =>
-    fmap(f)(join(obRec));
+  <R, T>(f: (rec: R) => T) =>
+  (obr: ObservableRecord<R>) =>
+    fmap(f)(join(obr));
+
+export const bind =
+  <S, T>(f: (src: S) => Observable<T>) =>
+  (obSrc: Observable<S>): Observable<T> =>
+    observable((update) => (prevState) => {
+      let unobserveTar = noop;
+      const setSrc = (src: S) => {
+        const obnTar = f(src).observe((tar) => update(() => tar));
+        unobserveTar();
+        unobserveTar = obnTar.unobserve;
+        return obnTar.state;
+      };
+      const obnSrc = obSrc.observe((src) => update(() => setSrc(src)));
+      const state = setSrc(obnSrc.state);
+      return {
+        state,
+        unobserve: () => {
+          unobserveTar();
+          obnSrc.unobserve();
+        },
+      };
+    });
 
 export const property = <R>(key: keyof R) => fmap((o: R) => o[key]);
 
 export const propertyOf =
-  <R>(obRec: Observable<R>) =>
+  <R>(ob: Observable<R>) =>
   (key: keyof R) =>
-    property(key)(obRec);
+    property(key)(ob);
