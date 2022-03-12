@@ -9,7 +9,9 @@
   "scripts": {
     "build": "tsc",
     "clean": "rimraf dist coverage",
-    "prepack": "npm run clean; npm run build",
+    "lint": "eslint",
+    "prepack": "npm run clean; npm run lint; npm run build; npm run test",
+    "syncdoc": "copyfiles README.md docs",
     "test": "jest"
   },
   "repository": {
@@ -38,6 +40,8 @@
     "@typescript-eslint/eslint-plugin": "^5.14.0",
     "@typescript-eslint/parser": "^5.14.0",
     "babel-jest": "^27.5.1",
+    "copyfiles": "^2.4.1",
+    "docsify": "^4.12.2",
     "eslint": "^8.10.0",
     "jest": "^27.5.1",
     "rimraf": "^3.0.2",
