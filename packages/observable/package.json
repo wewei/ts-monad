@@ -16,7 +16,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/wewei/ts-monad-observable.git"
+    "url": "git+https://github.com/wewei/ts-monad.git"
   },
   "keywords": [
     "Observable",
@@ -29,7 +29,7 @@
   "author": "Wei Wei",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/wewei/ts-monad-observable/issues"
+    "url": "https://github.com/wewei/ts-monad/issues"
   },
   "homepage": "https://wewei.github.io/ts-monad-observable/",
   "devDependencies": {
